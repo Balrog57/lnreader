@@ -6,6 +6,8 @@ import { ChapterInfo, NovelInfo } from '@database/types';
 import { useAppSettings, useDownload, useTheme } from '@hooks/persisted';
 import { getString } from '@i18n/translations';
 import {
+  type NativeScrollEvent,
+  type NativeSyntheticEvent,
   RefreshControl,
   StyleSheet,
   useWindowDimensions,
@@ -24,8 +26,7 @@ import PageNavigationBottomSheet from './PageNavigationBottomSheet';
 import * as Haptics from 'expo-haptics';
 import { ChapterListSkeleton } from '@components/Skeleton/Skeleton';
 import { BottomSheetModalMethods } from '@gorhom/bottom-sheet/lib/typescript/types';
-import { LegendListRef } from '@legendapp/list/react-native';
-import { AnimatedLegendList } from '@legendapp/list/reanimated';
+import { LegendList, LegendListRef } from '@legendapp/list/react-native';
 import PagePaginationControl from './PagePaginationControl';
 import { useNovelActions, useNovelValue } from '../NovelContext';
 import { UseBooleanReturnType } from '@hooks/index';
@@ -171,7 +172,12 @@ const NovelScreenList = ({
     [headerOpacity, lastRead, screenHeight, useFabForContinueReading],
   );
 
-  const listSharedValues = useMemo(() => ({ scrollOffset }), [scrollOffset]);
+  const scrollHandler = useCallback(
+    (event: NativeSyntheticEvent<NativeScrollEvent>) => {
+      scrollOffset.value = event.nativeEvent.contentOffset.y;
+    },
+    [scrollOffset],
+  );
 
   // --- Stable callbacks ---
 
@@ -412,7 +418,7 @@ const NovelScreenList = ({
 
   return (
     <>
-      <AnimatedLegendList
+      <LegendList
         ref={listRef}
         estimatedItemSize={64}
         data={chapters}
@@ -425,7 +431,7 @@ const NovelScreenList = ({
         refreshControl={refreshControlElement}
         onEndReached={getNextChapterBatch}
         onEndReachedThreshold={6}
-        sharedValues={listSharedValues}
+        onScroll={scrollHandler}
         //drawDistance={1000}
         ListHeaderComponent={listHeader}
       />
