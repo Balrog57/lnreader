@@ -4,7 +4,7 @@ import {
   getCachedNovels as _getCachedNovels,
   deleteCachedNovels as _deleteCachedNovels,
 } from '@database/queries/NovelQueries';
-import NativeFile from '@modules/native-file'
+import NativeFile from '@modules/native-file';
 import { NOVEL_STORAGE } from '@utils/Storages';
 import { MMKVStorage } from '@utils/mmkv/mmkv';
 import { TRACKED_NOVEL_PREFIX } from '@hooks/persisted/useTrackedNovel';
@@ -101,6 +101,17 @@ describe('deleteCachedNovels', () => {
     for (const novel of cachedNovels) {
       const dir = `${NOVEL_STORAGE}/${novel.pluginId}/${novel.id}`;
       expect(NativeFile.unlink).toHaveBeenCalledWith(dir);
+    }
+  });
+
+  it('unlinks the saved cover image for each cached novel', async () => {
+    (NativeFile.exists as jest.Mock).mockReturnValue(true);
+
+    await deleteCachedNovels();
+
+    for (const novel of cachedNovels) {
+      const coverPath = `${NOVEL_STORAGE}/${novel.pluginId}/${novel.id}/cover.png`;
+      expect(NativeFile.unlink).toHaveBeenCalledWith(coverPath);
     }
   });
 

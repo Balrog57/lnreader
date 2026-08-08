@@ -10,12 +10,14 @@ import {
   insertTestNovel,
   insertTestNovelCategory,
   insertTestCategory,
+  insertTestChapter,
   clearAllTables,
 } from './testData';
 import {
   categorySchema,
   novelCategorySchema,
   novelSchema,
+  chapterSchema,
 } from '@database/schema';
 import { eq } from 'drizzle-orm';
 import { BUILT_IN_CATEGORY_IDS } from '@database/constants';
@@ -353,6 +355,27 @@ describe('NovelQueries', () => {
       expect(cached).toHaveLength(0);
       const all = await getAllNovels();
       expect(all.length).toBe(1); // Only library novel remains
+    });
+
+    it('should delete chapters of cached novels but keep library chapters', async () => {
+      const cachedNovelId = await insertTestNovel(getTestDb(), {
+        inLibrary: false,
+      });
+      const libraryNovelId = await insertTestNovel(getTestDb(), {
+        inLibrary: true,
+      });
+      await insertTestChapter(getTestDb(), cachedNovelId);
+      await insertTestChapter(getTestDb(), cachedNovelId);
+      await insertTestChapter(getTestDb(), libraryNovelId);
+
+      await deleteCachedNovels();
+
+      const remainingChapters = await getTestDb()
+        .dbManager.select()
+        .from(chapterSchema)
+        .all();
+      expect(remainingChapters).toHaveLength(1);
+      expect(remainingChapters[0].novelId).toBe(libraryNovelId);
     });
   });
 

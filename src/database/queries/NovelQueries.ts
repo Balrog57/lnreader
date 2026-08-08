@@ -244,7 +244,37 @@ export const getCachedNovels = async (): Promise<NovelInfo[]> => {
 
 export const deleteCachedNovels = async () => {
   await dbManager.write(async tx => {
-    await tx.delete(novelSchema).where(eq(novelSchema.inLibrary, false)).run();
+    const cachedNovelIds = await tx
+      .select({ id: novelSchema.id })
+      .from(novelSchema)
+      .where(
+        and(
+          eq(novelSchema.inLibrary, false),
+          eq(novelSchema.chaptersDownloaded, 0),
+        ),
+      )
+      .all();
+
+    if (cachedNovelIds.length === 0) return;
+    await tx
+      .delete(chapterSchema)
+      .where(
+        inArray(
+          chapterSchema.novelId,
+          cachedNovelIds.map(novel => novel.id),
+        ),
+      )
+      .run();
+
+    await tx
+      .delete(novelSchema)
+      .where(
+        inArray(
+          novelSchema.id,
+          cachedNovelIds.map(novel => novel.id),
+        ),
+      )
+      .run();
   });
   showToast(getString('advancedSettingsScreen.cachedNovelsDeletedToast'));
 };
